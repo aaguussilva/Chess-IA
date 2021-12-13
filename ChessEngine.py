@@ -3,6 +3,9 @@ This class is responsible for storing all the information about the current stat
 It will also be rsponsible for determining the valid moves at the current state. It will also keep a move log.
 """
 
+from os import pipe
+
+
 class GameState():
     def __init__(self):
         # Board is a 8x8 2s list, where each element has 2 characters..
@@ -26,6 +29,33 @@ class GameState():
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moveLog.append(move) #log the move so we can undo it later
         self.whiteToMove = not self.whiteToMove #swap players
+    
+    def undoMove(self):
+        if len(self.moveLog) != 0:
+            lastMove = self.moveLog.pop()
+            self.board[lastMove.startRow][lastMove.startCol] = lastMove.pieceMoved
+            self.board[lastMove.endRow][lastMove.endCol] = lastMove.pieceCaptured
+            self.whiteToMove = not self.whiteToMove
+    
+    def getValidMoves(self):
+        return self.getAllPosibleMoves()
+
+    def getAllPosibleMoves(self):
+        moves = [Move((6,4), (4,4), self.board)]
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                turn = self.board[r][c][0]
+                if (turn == 'w' and self.whiteToMove) and (turn == 'b' and not self.whiteToMove):
+                    piece = self.board[r][c][1]
+                    if piece == 'p':
+                        self.getPawnMoves(r,c,moves)
+                    elif piece == 'R':
+                        self.getRookMoves(r,c,moves)
+        
+        return moves
+
+    def getPawnMoves(self, r, c, moves):
+        pass
 
 
 class Move():
@@ -45,6 +75,12 @@ class Move():
         self.endCol = endSq[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
+        self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol 
+
+    def __eq__(self, other):
+        if isinstance(other, Move):
+            return self.moveID == other.moveID
+        return False
 
     def getChessNotation(self):
         return "(" + self.getRankFile(self.startRow, self.startCol) + "-"+ self.getRankFile(self.endRow, self.endCol) + ")"
